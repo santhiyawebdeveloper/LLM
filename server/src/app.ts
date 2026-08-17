@@ -29,8 +29,19 @@ import shopifyRoutes from './routes/shopifyRoutes.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function isAllowedExitIframeRedirect(target: URL): boolean {
+  const appHostname = new URL(env.SHOPIFY_APP_URL).hostname;
+  return (
+    target.hostname === appHostname ||
+    target.hostname === 'admin.shopify.com' ||
+    target.hostname.endsWith('.myshopify.com')
+  );
+}
+
 export function createApp(): Express {
   const app = express();
+
+  app.set('trust proxy', isProduction ? 1 : false);
 
   app.use(securityHeaders);
 
@@ -43,6 +54,13 @@ export function createApp(): Express {
   app.use(cookieParser());
 
   app.use((req, res, next) => {
+    // Skip on OAuth routes: @shopify/shopify-api re-serializes all Set-Cookie headers
+    // and corrupts Express cookie flags (HttpOnly/Secure become "undefined").
+    if (req.path.startsWith('/api/auth')) {
+      next();
+      return;
+    }
+
     const shop = req.query.shop;
     const host = req.query.host;
     const cookieOpts = {
@@ -93,6 +111,39 @@ export function createApp(): Express {
     shopifyAppInstance.auth.callback(),
     shopifyAppInstance.redirectToShopifyOrAppRoot()
   );
+
+  app.get('/exitiframe', (req, res) => {
+    const redirectUriParam = req.query.redirectUri;
+    if (typeof redirectUriParam !== 'string' || !redirectUriParam) {
+      res.status(400).send('Missing redirectUri');
+      return;
+    }
+
+    try {
+      const redirectTarget = new URL(decodeURIComponent(redirectUriParam));
+      if (!isAllowedExitIframeRedirect(redirectTarget)) {
+        res.status(400).send('Invalid redirectUri');
+        return;
+      }
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+  </head>
+  <body>
+    <p>Redirecting to Shopify…</p>
+    <script>
+      window.open(${JSON.stringify(redirectTarget.toString())}, '_top');
+    </script>
+  </body>
+</html>`);
+    } catch {
+      res.status(400).send('Invalid redirectUri');
+    }
+  });
 
   app.post(
     shopifyAppInstance.config.webhooks.path,

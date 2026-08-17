@@ -40,7 +40,11 @@ function loadEnv() {
     const missing = parsed.error.errors.map((e) => e.path.join('.')).join(', ');
     throw new Error(`Missing or invalid environment variables: ${missing}`);
   }
-  return parsed.data;
+
+  return {
+    ...parsed.data,
+    SHOPIFY_APP_URL: parsed.data.SHOPIFY_APP_URL.replace(/\/$/, ''),
+  };
 }
 
 export const env = loadEnv();

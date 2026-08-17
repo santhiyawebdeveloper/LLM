@@ -20,6 +20,7 @@ export const authRateLimiter = rateLimit({
   max: isProduction ? 30 : 200,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many authentication attempts. Please try again later.',
@@ -32,6 +33,7 @@ export const apiRateLimiter = rateLimit({
   max: isProduction ? 300 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',
@@ -44,6 +46,7 @@ export const healthRateLimiter = rateLimit({
   max: isProduction ? 60 : 500,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',

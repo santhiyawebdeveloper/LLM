@@ -41,12 +41,15 @@ function createSessionStorage(): MongoDBSessionStorage | MemorySessionStorage {
   );
 }
 
+const appUrl = new URL(env.SHOPIFY_APP_URL);
+
 export const shopifyAppInstance = shopifyApp({
   api: {
     apiKey: env.SHOPIFY_API_KEY,
     apiSecretKey: env.SHOPIFY_API_SECRET,
     scopes: env.SHOPIFY_SCOPES.split(',').map((s) => s.trim()),
-    hostName: new URL(env.SHOPIFY_APP_URL).host,
+    hostName: appUrl.host,
+    hostScheme: appUrl.protocol.replace(':', '') as 'http' | 'https',
     apiVersion: ApiVersion.January25,
     isEmbeddedApp: true,
   },

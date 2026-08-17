@@ -67,6 +67,22 @@ describe('HTTP API integration', () => {
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toMatch(/html/);
     });
+
+    it('GET /exitiframe without redirectUri returns 400', async () => {
+      const res = await request(app).get('/exitiframe');
+      expect(res.status).toBe(400);
+    });
+
+    it('GET /exitiframe with app redirectUri returns breakout HTML', async () => {
+      const redirectUri = encodeURIComponent(
+        'http://localhost:3001/api/auth?shop=test.myshopify.com'
+      );
+      const res = await request(app).get(`/exitiframe?redirectUri=${redirectUri}`);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/html/);
+      expect(res.text).toContain("window.open(");
+      expect(res.text).toContain('_top');
+    });
   });
 
   describe('invalid route params (authenticated tenant pipeline)', () => {
