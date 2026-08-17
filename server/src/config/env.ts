@@ -6,8 +6,11 @@ import { z } from 'zod';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootEnvPath = path.resolve(__dirname, '../../../.env');
+const isVitest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
 
-dotenv.config({ path: rootEnvPath });
+if (!isVitest) {
+  dotenv.config({ path: rootEnvPath });
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -28,7 +31,7 @@ function loadEnv() {
       SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET || 'test-api-secret',
       SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 'http://localhost:3001',
       SHOPIFY_SCOPES: process.env.SHOPIFY_SCOPES || 'read_products',
-      MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/test',
+      MONGODB_URI: 'mongodb://127.0.0.1:27017/test',
     };
   }
 

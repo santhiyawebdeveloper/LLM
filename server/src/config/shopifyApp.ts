@@ -1,16 +1,21 @@
 import './dns.js';
-import { env } from './env.js';
+import { env, isTest } from './env.js';
 import '@shopify/shopify-api/adapters/node';
 import { ApiVersion } from '@shopify/shopify-api';
 import { shopifyApp } from '@shopify/shopify-app-express';
 import { MongoDBSessionStorage } from '@shopify/shopify-app-session-storage-mongodb';
+import { MemorySessionStorage } from '@shopify/shopify-app-session-storage-memory';
 
 function getDatabaseName(uri: string): string {
   const dbNameMatch = uri.match(/\/([^/?]+)(\?|$)/);
   return dbNameMatch?.[1] || 'shopify_lms';
 }
 
-function createSessionStorage(): MongoDBSessionStorage {
+function createSessionStorage(): MongoDBSessionStorage | MemorySessionStorage {
+  if (isTest) {
+    return new MemorySessionStorage();
+  }
+
   const uri = env.MONGODB_URI;
   const dbName = getDatabaseName(uri);
 
@@ -32,6 +37,7 @@ function createSessionStorage(): MongoDBSessionStorage {
     dbName,
     decodeURIComponent(username),
     decodeURIComponent(password),
+    {},
   );
 }
 

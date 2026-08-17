@@ -21,8 +21,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "mongodb": "^7.5.0"
   }
 }
