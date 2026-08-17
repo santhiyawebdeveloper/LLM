@@ -12,6 +12,7 @@ import {
   UpdateEnrollmentStatusInput,
 } from '../validators/index.js';
 import { buildPaginationMeta } from '../utils/apiResponse.js';
+import { buildSafeRegexFilter } from '../utils/escapeRegex.js';
 
 export class EnrollmentService {
   static async create(
@@ -91,13 +92,13 @@ export class EnrollmentService {
     if (options.status) filter.status = options.status;
 
     if (options.search) {
-      const searchRegex = { $regex: options.search, $options: 'i' };
+      const searchFilter = buildSafeRegexFilter(options.search);
       const [students, courses] = await Promise.all([
         Student.find({
           storeId,
-          $or: [{ name: searchRegex }, { email: searchRegex }],
+          $or: [{ name: searchFilter }, { email: searchFilter }],
         }).select('_id'),
-        Course.find({ storeId, title: searchRegex }).select('_id'),
+        Course.find({ storeId, title: searchFilter }).select('_id'),
       ]);
 
       const studentIds = students.map((s) => s._id);

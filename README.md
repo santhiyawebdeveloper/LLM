@@ -21,7 +21,27 @@ Shopify LMS is a production-quality embedded Shopify application that enables me
 | Frontend | React, TypeScript, Vite, Shopify Polaris, App Bridge, React Router, TanStack Query |
 | Backend | Node.js, TypeScript, Express, Shopify official API library, Zod |
 | Database | MongoDB, Mongoose |
-| Deployment | Render, MongoDB Atlas |
+| Deployment | Vercel (primary), Render (alternate), MongoDB Atlas |
+
+## Live Application
+
+| Item | Value |
+|------|-------|
+| **Production URL** | https://shopify-lms-three.vercel.app |
+| **Health check** | https://shopify-lms-three.vercel.app/api/health |
+| **Dev store** | `lms-development-store-cx9qoiqw.myshopify.com` |
+
+### IMPORTANT — How to Access the App
+
+This is a **Shopify Embedded App**. It must be opened from Shopify Admin:
+
+```
+Shopify Admin → Apps → LMS
+```
+
+Do **not** expect the full dashboard to work when opening the Vercel URL directly in a browser tab. Direct access lacks a Shopify App Bridge session token, so API calls return `401 Unauthorized`. This is correct embedded-app behavior.
+
+For HR/evaluator testing: install the app on the development store, then open it from **Apps → LMS** inside Shopify Admin.
 
 ## Architecture
 
@@ -221,14 +241,57 @@ npm test
 ```
 
 Tests cover:
-- Course CRUD and validation
+- Course CRUD, validation, and safe regex search
 - Student creation and duplicate prevention
-- Enrollment creation and duplicate prevention (service + DB layer)
-- Tenant isolation
-- Authentication failure
+- Enrollment creation and duplicate prevention (service + DB layer + concurrent)
+- Tenant isolation (courses, students, enrollments)
+- Authentication failure and invalid Bearer tokens
 - Shopify API error handling
+- Shop/host parameter validation
 
-## Production Deployment (Render)
+## Duplicate Enrollment Prevention
+
+Duplicate enrollments are blocked at **three layers**:
+
+1. Service-layer check before insert
+2. MongoDB unique compound index: `{ storeId, studentId, courseId }`
+3. Centralized 409 error handler for duplicate key violations
+
+This prevents duplicate enrollment even under concurrent requests (race-condition safe).
+
+## Demo Data (Development Only)
+
+After installing the app on your dev store, seed sample courses, students, and enrollments:
+
+```bash
+SEED_SHOP_DOMAIN=your-store.myshopify.com npm run seed
+```
+
+Requirements:
+- `NODE_ENV` must not be `production`
+- The store must already exist (install the app first so OAuth creates the Store record)
+- Seed clears and replaces LMS data for that store only
+
+## Production Deployment (Vercel)
+
+The app is deployed to Vercel as a serverless Express adapter (`api/index.ts`).
+
+| Setting | Value |
+|---------|-------|
+| App URL | `https://shopify-lms-three.vercel.app` |
+| OAuth callback | `https://shopify-lms-three.vercel.app/api/auth/callback` |
+| Webhook | `https://shopify-lms-three.vercel.app/api/webhooks` |
+
+Deploy:
+
+```bash
+npx vercel --prod
+shopify app deploy -c lms --allow-updates
+```
+
+Ensure Vercel environment variables match `.env.example` and MongoDB Atlas Network Access allows Vercel (typically `0.0.0.0/0`).
+
+## Production Deployment (Render — alternate)
 
 ### Render Environment Variables
 
@@ -330,8 +393,12 @@ Add screenshots after deployment:
 - Session token authentication on all LMS endpoints
 - Tenant isolation via authenticated `storeId`
 - Access tokens never exposed in API responses or frontend
-- Zod validation on all inputs
-- Centralized error handling without stack trace leakage
+- Zod validation with max-length limits on all inputs
+- Safe regex escaping for user search queries
+- Helmet security headers (iframe-compatible for Shopify embedded apps)
+- Rate limiting on auth, API, and health endpoints
+- Shop/host cookie validation before setting cookies
+- Centralized error handling without stack trace leakage in production
 - CORS restricted in production
 - App uninstall webhook cleans up store data
 

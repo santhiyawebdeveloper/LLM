@@ -1,6 +1,7 @@
-import { Frame, Navigation, TopBar } from '@shopify/polaris';
+import { Banner, BlockStack, Frame, Navigation, TopBar } from '@shopify/polaris';
 import { useState, useCallback } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { isShopifyEmbedded } from '../utils/shopifyContext';
 import {
   HomeIcon,
   ProductIcon,
@@ -83,7 +84,18 @@ export function AppLayout() {
       showMobileNavigation={mobileNavigationActive}
       onNavigationDismiss={toggleMobileNavigation}
     >
-      <Outlet />
+      <BlockStack gap="400">
+        {!isShopifyEmbedded() && (
+          <Banner tone="warning" title="Open from Shopify Admin">
+            <p>
+              This is a Shopify embedded app. Open it from your store admin:
+              Apps → LMS. Direct browser access to the Vercel URL cannot load
+              store data without a Shopify session.
+            </p>
+          </Banner>
+        )}
+        <Outlet />
+      </BlockStack>
     </Frame>
   );
 }

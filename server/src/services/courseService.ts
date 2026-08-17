@@ -7,6 +7,7 @@ import {
   UpdateCourseInput,
 } from '../validators/index.js';
 import { buildPaginationMeta } from '../utils/apiResponse.js';
+import { buildSafeRegexFilter } from '../utils/escapeRegex.js';
 
 export class CourseService {
   static async create(
@@ -31,7 +32,7 @@ export class CourseService {
 
     if (options.status) filter.status = options.status;
     if (options.search) {
-      filter.title = { $regex: options.search, $options: 'i' };
+      filter.title = buildSafeRegexFilter(options.search);
     }
 
     const [courses, total] = await Promise.all([

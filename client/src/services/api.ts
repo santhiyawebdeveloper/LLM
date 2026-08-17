@@ -1,4 +1,5 @@
 import type { ApiError, ApiResponse } from '../types/enrollment';
+import { isShopifyEmbedded } from '../utils/shopifyContext';
 
 export class ApiClientError extends Error {
   constructor(
@@ -10,6 +11,13 @@ export class ApiClientError extends Error {
     super(message);
     this.name = 'ApiClientError';
   }
+}
+
+function getUnauthorizedMessage(): string {
+  if (isShopifyEmbedded()) {
+    return 'Your Shopify session has expired. Please reopen the app from Shopify Admin (Apps → LMS).';
+  }
+  return 'Open this app from Shopify Admin (Apps → LMS) to load data.';
 }
 
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -41,7 +49,7 @@ export async function apiFetch<T>(
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     throw new ApiClientError(
-      response.status === 401 ? 'Authentication required' : 'Request failed',
+      response.status === 401 ? getUnauthorizedMessage() : 'Request failed',
       response.status === 401 ? 'UNAUTHORIZED' : 'UNKNOWN_ERROR',
       response.status
     );
@@ -51,8 +59,12 @@ export async function apiFetch<T>(
 
   if (!response.ok || !data.success) {
     const error = data as ApiError;
+    const message =
+      response.status === 401
+        ? getUnauthorizedMessage()
+        : error.message || 'Request failed';
     throw new ApiClientError(
-      error.message || 'Request failed',
+      message,
       error.code || 'UNKNOWN_ERROR',
       response.status,
       error.errors
@@ -71,4 +83,11 @@ export function buildQueryString(params: Record<string, string | number | undefi
   }
   const qs = searchParams.toString();
   return qs ? `?${qs}` : '';
+}
+
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+  return fallback;
 }

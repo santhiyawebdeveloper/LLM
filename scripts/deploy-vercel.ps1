@@ -2,7 +2,7 @@
 # Reads local .env without printing secrets.
 
 $ErrorActionPreference = 'Stop'
-Set-Location $PSScriptRoot + '\..'
+Set-Location (Join-Path $PSScriptRoot '..')
 
 function Get-EnvValue([string]$Name) {
   $line = Get-Content .env | Where-Object { $_ -match "^\s*$Name=" } | Select-Object -First 1
@@ -21,7 +21,7 @@ function Set-VercelEnv([string]$Name, [string]$Value, [string]$Env = 'production
 }
 
 Write-Host 'Linking Vercel project (if needed)...'
-npx vercel link --yes 2>&1 | Out-Host
+npx vercel link --yes --project shopify-lms 2>&1 | Out-Host
 
 Write-Host 'Initial production deploy...'
 $deployOutput = npx vercel --yes 2>&1 | Out-String

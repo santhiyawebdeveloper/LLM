@@ -81,6 +81,40 @@ describe('CourseService', () => {
     ).rejects.toThrow(NotFoundError);
   });
 
+  it('treats regex special characters in search as literal text', async () => {
+    await CourseService.create(storeId, {
+      title: 'React Basics',
+      description: 'Desc',
+      instructorName: 'Inst',
+      category: 'Cat',
+      duration: 3,
+    });
+    await CourseService.create(storeId, {
+      title: 'Node Advanced',
+      description: 'Desc',
+      instructorName: 'Inst',
+      category: 'Cat',
+      duration: 3,
+    });
+
+    const literalMatch = await CourseService.findAll(storeId, {
+      page: 1,
+      limit: 20,
+      skip: 0,
+      search: 'React',
+    });
+    expect(literalMatch.courses).toHaveLength(1);
+    expect(literalMatch.courses[0].title).toBe('React Basics');
+
+    const regexPattern = await CourseService.findAll(storeId, {
+      page: 1,
+      limit: 20,
+      skip: 0,
+      search: '.*',
+    });
+    expect(regexPattern.courses).toHaveLength(0);
+  });
+
   it('deletes course when no enrollments exist', async () => {
     const course = await CourseService.create(storeId, {
       title: 'Deletable Course',

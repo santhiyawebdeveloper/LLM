@@ -10,23 +10,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStudentDashboard } from '../../hooks/useStudents';
 import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
+import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <Card>
-      <BlockStack gap="200">
-        <Text as="p" variant="bodySm" tone="subdued">{title}</Text>
-        <Text as="p" variant="headingXl">{value}</Text>
-      </BlockStack>
-    </Card>
-  );
-}
+import { StatCard } from '../../components/StatCard';
+import { getApiErrorMessage } from '../../services/api';
 
 export function StudentDashboardPage() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
-  const { data, isLoading, isError, refetch } = useStudentDashboard(studentId || '');
+  const { data, isLoading, isError, error, refetch } = useStudentDashboard(studentId || '');
 
   if (isLoading) {
     return <Page title="Student Dashboard"><LoadingState /></Page>;
@@ -35,7 +27,10 @@ export function StudentDashboardPage() {
   if (isError || !data?.data) {
     return (
       <Page title="Student Dashboard">
-        <ErrorState message="Failed to load student dashboard" onRetry={() => refetch()} />
+        <ErrorState
+          message={getApiErrorMessage(error, 'Failed to load student dashboard')}
+          onRetry={() => refetch()}
+        />
       </Page>
     );
   }
@@ -55,15 +50,18 @@ export function StudentDashboardPage() {
           <StatCard title="In Progress" value={summary.inProgressCount} />
         </InlineGrid>
 
-        <Card padding="0">
+        <Card>
           <BlockStack gap="400">
-            <div style={{ padding: '16px' }}>
-              <Text as="h2" variant="headingMd">Enrolled Courses</Text>
-            </div>
+            <Text as="h2" variant="headingMd">Enrolled Courses</Text>
             {enrollments.length === 0 ? (
-              <div style={{ padding: '16px' }}>
-                <Text as="p" tone="subdued">No enrolled courses.</Text>
-              </div>
+              <EmptyState
+                heading="No enrolled courses"
+                description="This student has not been enrolled in any courses yet."
+                action={{
+                  content: 'Go to Enrollments',
+                  onAction: () => navigate('/enrollments'),
+                }}
+              />
             ) : (
               <IndexTable
                 resourceName={{ singular: 'course', plural: 'courses' }}

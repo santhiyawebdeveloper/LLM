@@ -10,8 +10,6 @@ export const enrollmentApi = {
   list: (params: EnrollmentListParams = {}) =>
     apiFetch<Enrollment[]>(`/enrollments${buildQueryString(params as Record<string, string | number | undefined>)}`),
 
-  getById: (id: string) => apiFetch<Enrollment>(`/enrollments/${id}`),
-
   create: (data: CreateEnrollmentInput) =>
     apiFetch<Enrollment>('/enrollments', { method: 'POST', body: JSON.stringify(data) }),
 

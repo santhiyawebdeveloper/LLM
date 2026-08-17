@@ -40,6 +40,14 @@ describe('HTTP API integration', () => {
       expect(res.status).toBe(401);
       expect(res.body.code).toBe('UNAUTHORIZED');
     });
+
+    it('GET /api/courses with invalid Bearer token format returns 401', async () => {
+      const res = await request(app)
+        .get('/api/courses')
+        .set('Authorization', 'Bearer');
+      expect(res.status).toBe(401);
+      expect(res.body.code).toBe('UNAUTHORIZED');
+    });
   });
 
   describe('invalid route params (authenticated tenant pipeline)', () => {
@@ -107,6 +115,71 @@ describe('HTTP API integration', () => {
       expect(crossRes.status).toBe(404);
       expect(crossRes.body.success).toBe(false);
       expect(crossRes.body.code).toBe('COURSE_NOT_FOUND');
+    });
+
+    it('store B cannot GET store A student by id', async () => {
+      const storeAApp = createAuthenticatedApiApp();
+      const storeBApp = createAuthenticatedApiApp(OTHER_TEST_SHOP);
+
+      const createRes = await request(storeAApp)
+        .post('/api/students')
+        .set('Authorization', TEST_BEARER)
+        .send({
+          name: 'Store A Student',
+          email: 'store-a-student@example.com',
+        });
+
+      expect(createRes.status).toBe(201);
+      const studentId = createRes.body.data._id;
+
+      const crossRes = await request(storeBApp)
+        .get(`/api/students/${studentId}`)
+        .set('Authorization', TEST_BEARER);
+
+      expect(crossRes.status).toBe(404);
+      expect(crossRes.body.code).toBe('STUDENT_NOT_FOUND');
+    });
+
+    it('store B cannot GET store A enrollment by id', async () => {
+      const storeAApp = createAuthenticatedApiApp();
+      const storeBApp = createAuthenticatedApiApp(OTHER_TEST_SHOP);
+
+      const courseRes = await request(storeAApp)
+        .post('/api/courses')
+        .set('Authorization', TEST_BEARER)
+        .send({
+          title: 'Enrollment Isolation Course',
+          description: 'Desc',
+          instructorName: 'Inst',
+          category: 'Test',
+          duration: 5,
+        });
+
+      const studentRes = await request(storeAApp)
+        .post('/api/students')
+        .set('Authorization', TEST_BEARER)
+        .send({
+          name: 'Enrollment Student',
+          email: 'enrollment-student@example.com',
+        });
+
+      const enrollmentRes = await request(storeAApp)
+        .post('/api/enrollments')
+        .set('Authorization', TEST_BEARER)
+        .send({
+          studentId: studentRes.body.data._id,
+          courseId: courseRes.body.data._id,
+        });
+
+      expect(enrollmentRes.status).toBe(201);
+      const enrollmentId = enrollmentRes.body.data._id;
+
+      const crossRes = await request(storeBApp)
+        .get(`/api/enrollments/${enrollmentId}`)
+        .set('Authorization', TEST_BEARER);
+
+      expect(crossRes.status).toBe(404);
+      expect(crossRes.body.code).toBe('ENROLLMENT_NOT_FOUND');
     });
   });
 });

@@ -4,6 +4,7 @@ import { Enrollment } from '../models/Enrollment.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import { CreateStudentInput } from '../validators/index.js';
 import { buildPaginationMeta } from '../utils/apiResponse.js';
+import { buildSafeRegexFilter } from '../utils/escapeRegex.js';
 
 export class StudentService {
   static async create(
@@ -38,10 +39,8 @@ export class StudentService {
     const filter: Record<string, unknown> = { storeId };
 
     if (options.search) {
-      filter.$or = [
-        { name: { $regex: options.search, $options: 'i' } },
-        { email: { $regex: options.search, $options: 'i' } },
-      ];
+      const searchFilter = buildSafeRegexFilter(options.search);
+      filter.$or = [{ name: searchFilter }, { email: searchFilter }];
     }
 
     const [students, total] = await Promise.all([

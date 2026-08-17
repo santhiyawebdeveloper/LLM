@@ -53,5 +53,6 @@ enrollmentSchema.index(
 );
 enrollmentSchema.index({ storeId: 1, status: 1 });
 enrollmentSchema.index({ storeId: 1, enrollmentDate: -1 });
+enrollmentSchema.index({ storeId: 1, courseId: 1 });
 
 export const Enrollment = model<IEnrollment>('Enrollment', enrollmentSchema);

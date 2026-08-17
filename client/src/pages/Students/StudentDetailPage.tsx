@@ -9,13 +9,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStudent } from '../../hooks/useStudents';
 import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
+import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
+import { getApiErrorMessage } from '../../services/api';
 import type { EnrollmentWithCourse } from '../../types/enrollment';
 
 export function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data, isLoading, isError, refetch } = useStudent(id || '');
+  const { data, isLoading, isError, error, refetch } = useStudent(id || '');
 
   if (isLoading) {
     return <Page title="Student Details"><LoadingState /></Page>;
@@ -24,7 +26,10 @@ export function StudentDetailPage() {
   if (isError || !data?.data) {
     return (
       <Page title="Student Details">
-        <ErrorState message="Failed to load student" onRetry={() => refetch()} />
+        <ErrorState
+          message={getApiErrorMessage(error, 'Failed to load student')}
+          onRetry={() => refetch()}
+        />
       </Page>
     );
   }
@@ -51,15 +56,18 @@ export function StudentDetailPage() {
           </BlockStack>
         </Card>
 
-        <Card padding="0">
+        <Card>
           <BlockStack gap="400">
-            <div style={{ padding: '16px' }}>
-              <Text as="h2" variant="headingMd">Enrolled Courses</Text>
-            </div>
+            <Text as="h2" variant="headingMd">Enrolled Courses</Text>
             {enrollments.length === 0 ? (
-              <div style={{ padding: '16px' }}>
-                <Text as="p" tone="subdued">No enrollments yet.</Text>
-              </div>
+              <EmptyState
+                heading="No enrollments yet"
+                description="Enroll this student in a course from the Enrollments page."
+                action={{
+                  content: 'Go to Enrollments',
+                  onAction: () => navigate('/enrollments'),
+                }}
+              />
             ) : (
               <IndexTable
                 resourceName={{ singular: 'enrollment', plural: 'enrollments' }}

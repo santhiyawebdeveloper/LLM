@@ -2,23 +2,26 @@
 
 client_id = "2836a433d92ea24f9977e98df209bb47"
 name = "LMS"
-application_url = "http://localhost:3000"
+application_url = "https://shopify-lms-three.vercel.app"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 dev_store_url = "lms-development-store-cx9qoiqw.myshopify.com"
-include_config_on_deploy = true
-
-[access_scopes]
-scopes = "read_products"
-
-[auth]
-redirect_urls = [ "http://localhost:3000/api/auth/callback" ]
 
 [webhooks]
 api_version = "2025-01"
 
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "/api/webhooks"
+  [[webhooks.subscriptions]]
+  uri = "/api/webhooks"
+  topics = [ "app/uninstalled" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products"
+
+[auth]
+redirect_urls = [
+  "https://shopify-lms-three.vercel.app/api/auth/callback",
+  "http://localhost:3000/api/auth/callback"
+]

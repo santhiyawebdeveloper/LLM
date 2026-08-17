@@ -12,6 +12,7 @@
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm run start -w server",
     "test": "npm run test -w server",
+    "seed": "npm run seed -w server",
     "lint": "npm run lint -w server && npm run lint -w client",
     "setup:atlas": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-atlas.ps1",
     "setup:finish": "powershell -ExecutionPolicy Bypass -File ./scripts/finish-setup.ps1"

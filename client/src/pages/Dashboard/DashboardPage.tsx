@@ -12,21 +12,8 @@ import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <Card>
-      <BlockStack gap="200">
-        <Text as="p" variant="bodySm" tone="subdued">
-          {title}
-        </Text>
-        <Text as="p" variant="headingXl">
-          {value}
-        </Text>
-      </BlockStack>
-    </Card>
-  );
-}
+import { StatCard } from '../../components/StatCard';
+import { ApiClientError, getApiErrorMessage } from '../../services/api';
 
 export function DashboardPage() {
   const summaryQuery = useDashboardSummary();
@@ -41,10 +28,13 @@ export function DashboardPage() {
   }
 
   if (summaryQuery.isError || recentQuery.isError) {
+    const error = summaryQuery.error ?? recentQuery.error;
+    const isUnauthorized = error instanceof ApiClientError && error.status === 401;
     return (
       <Page title="Dashboard">
         <ErrorState
-          message="Failed to load dashboard data"
+          title={isUnauthorized ? 'Session expired' : 'Something went wrong'}
+          message={getApiErrorMessage(error, 'Failed to load dashboard data')}
           onRetry={() => {
             summaryQuery.refetch();
             recentQuery.refetch();
