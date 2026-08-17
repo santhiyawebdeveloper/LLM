@@ -6,8 +6,12 @@ import {
   BlockStack,
   IndexTable,
   InlineGrid,
+  InlineStack,
+  Badge,
 } from '@shopify/polaris';
+import { useQuery } from '@tanstack/react-query';
 import { useDashboardSummary, useRecentEnrollments } from '../../hooks/useDashboard';
+import { shopifyApi } from '../../services/shopifyApi';
 import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
 import { EmptyState } from '../../components/EmptyState';
@@ -18,6 +22,10 @@ import { ApiClientError, getApiErrorMessage } from '../../services/api';
 export function DashboardPage() {
   const summaryQuery = useDashboardSummary();
   const recentQuery = useRecentEnrollments();
+  const shopQuery = useQuery({
+    queryKey: ['shopify', 'shop'],
+    queryFn: () => shopifyApi.getShop(),
+  });
 
   if (summaryQuery.isLoading || recentQuery.isLoading) {
     return (
@@ -46,10 +54,50 @@ export function DashboardPage() {
 
   const summary = summaryQuery.data?.data;
   const recentEnrollments = recentQuery.data?.data || [];
+  const shop = shopQuery.data?.data;
 
   return (
     <Page title="Dashboard" subtitle="Learning Management System Overview">
       <Layout>
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h2" variant="headingMd">
+                  Connected Shopify Store
+                </Text>
+                <Badge tone="success">Live GraphQL</Badge>
+              </InlineStack>
+              {shopQuery.isLoading ? (
+                <LoadingState lines={2} />
+              ) : shopQuery.isError || !shop ? (
+                <Text as="p" tone="subdued">
+                  Unable to load store information from Shopify Admin GraphQL API.
+                </Text>
+              ) : (
+                <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">Store name</Text>
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">{shop.name}</Text>
+                  </BlockStack>
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">Store domain</Text>
+                    <Text as="p" variant="bodyMd">{shop.myshopifyDomain}</Text>
+                  </BlockStack>
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">Shop email</Text>
+                    <Text as="p" variant="bodyMd">{shop.email}</Text>
+                  </BlockStack>
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">Shop ID</Text>
+                    <Text as="p" variant="bodyMd">{shop.id}</Text>
+                  </BlockStack>
+                </InlineGrid>
+              )}
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
         <Layout.Section>
           <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 5 }} gap="400">
             <StatCard title="Total Courses" value={summary?.totalCourses ?? 0} />

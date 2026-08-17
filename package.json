@@ -14,6 +14,8 @@
     "test": "npm run test -w server",
     "seed": "npm run seed -w server",
     "lint": "npm run lint -w server && npm run lint -w client",
+    "deploy": "npm run build && npx vercel --prod",
+    "deploy:shopify": "shopify app deploy -c lms --allow-updates",
     "setup:atlas": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-atlas.ps1",
     "setup:finish": "powershell -ExecutionPolicy Bypass -File ./scripts/finish-setup.ps1"
   },

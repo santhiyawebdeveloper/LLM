@@ -88,9 +88,9 @@ export function AppLayout() {
         {!isShopifyEmbedded() && (
           <Banner tone="warning" title="Open from Shopify Admin">
             <p>
-              This is a Shopify embedded app. Open it from your store admin:
-              Apps → LMS. Direct browser access to the Vercel URL cannot load
-              store data without a Shopify session.
+              This application must be opened from Shopify Admin. Please install the Shopify LMS
+              app and launch it from the Shopify Admin Apps section. Direct browser access cannot
+              load store data without a Shopify session.
             </p>
           </Banner>
         )}

@@ -48,6 +48,25 @@ describe('HTTP API integration', () => {
       expect(res.status).toBe(401);
       expect(res.body.code).toBe('UNAUTHORIZED');
     });
+
+    it('GET /health returns ok without authentication', async () => {
+      const res = await request(app).get('/health');
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('ok');
+    });
+
+    it('GET /api/health returns running message without authentication', async () => {
+      const res = await request(app).get('/api/health');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Server is running');
+    });
+
+    it('GET /dashboard without Shopify shop context serves SPA', async () => {
+      const res = await request(app).get('/dashboard');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/html/);
+    });
   });
 
   describe('invalid route params (authenticated tenant pipeline)', () => {

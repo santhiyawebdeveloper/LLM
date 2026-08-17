@@ -28,8 +28,24 @@ Shopify LMS is a production-quality embedded Shopify application that enables me
 | Item | Value |
 |------|-------|
 | **Production URL** | https://shopify-lms-three.vercel.app |
-| **Health check** | https://shopify-lms-three.vercel.app/api/health |
-| **Dev store** | `lms-development-store-cx9qoiqw.myshopify.com` |
+| **Health check** | https://shopify-lms-three.vercel.app/health |
+| **API health** | https://shopify-lms-three.vercel.app/api/health |
+| **Readiness** | https://shopify-lms-three.vercel.app/api/ready |
+| **Dev store (owner testing)** | `lms-development-store-cx9qoiqw.myshopify.com` |
+
+### Shopify configuration files
+
+| File | Purpose |
+|------|---------|
+| **`shopify.app.lms.toml`** | **Active production config** — use for deploys |
+| `shopify.app.toml` | Local development template (placeholders only) |
+
+Deploy Shopify config:
+
+```bash
+npm run deploy:shopify
+# equivalent to: shopify app deploy -c lms --allow-updates
+```
 
 ### IMPORTANT — How to Access the App
 
@@ -43,7 +59,21 @@ Do **not** expect the full dashboard to work when opening the Vercel URL directl
 
 For HR/evaluator testing: install the app on the development store, then open it from **Apps → LMS** inside Shopify Admin.
 
+See **[HR_EVALUATION.md](./HR_EVALUATION.md)** for complete step-by-step evaluator instructions.
+
 ## Architecture
+
+```
+React (Vite + Polaris)
+        ↓
+Node.js / Express REST API
+        ↓
+MongoDB Atlas
+
+Shopify Embedded App (App Bridge session tokens)
+        ↓
+Shopify Admin GraphQL API
+```
 
 ```
 client/          React embedded frontend (Vite)
@@ -285,6 +315,13 @@ The app is deployed to Vercel as a serverless Express adapter (`api/index.ts`).
 Deploy:
 
 ```bash
+npm run deploy
+npm run deploy:shopify
+```
+
+Or manually:
+
+```bash
 npx vercel --prod
 shopify app deploy -c lms --allow-updates
 ```
@@ -401,6 +438,37 @@ Add screenshots after deployment:
 - Centralized error handling without stack trace leakage in production
 - CORS restricted in production
 - App uninstall webhook cleans up store data
+
+## HR Evaluation
+
+Evaluators can test the app independently using their own Shopify Partner account and development store. No access to the developer's personal Shopify account is required.
+
+### Quick start for evaluators
+
+1. Create a free [Shopify Partner account](https://partners.shopify.com) and a development store
+2. Install the app using:
+   ```
+   https://shopify-lms-three.vercel.app/api/auth?shop=YOUR-STORE.myshopify.com
+   ```
+3. Open **Apps → LMS** in your store admin
+4. Follow the full test flow in **[HR_EVALUATION.md](./HR_EVALUATION.md)**
+
+### Distribution model
+
+The app uses **custom installation via OAuth URL** on evaluator-owned development stores. It is not published to the Shopify App Store. Each evaluator installs on their own dev store — data is fully isolated per store (multi-tenant).
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| **401 on API calls** | App opened directly, not from Shopify Admin | Open via **Apps → LMS** inside Shopify Admin |
+| **Direct URL shows instructions only** | Expected — no Shopify session | Install app, then open from Shopify Admin |
+| **OAuth redirect error** | Callback URL mismatch | Verify Partner Dashboard redirect URL is exactly `https://shopify-lms-three.vercel.app/api/auth/callback` |
+| **Embedded app not loading** | App URL mismatch or missing `host` param | Reinstall via OAuth URL; open from Apps menu |
+| **MongoDB connection failure** | Atlas network access or bad URI | Allow `0.0.0.0/0` in Atlas; verify `MONGODB_URI` on Vercel |
+| **Vercel deployment failure** | Missing build env vars | Set `VITE_SHOPIFY_API_KEY` at build time; all vars from `.env.example` |
+| **GraphQL store info fails** | Expired or missing access token | Reinstall app on the store |
+| **Wrong Shopify app deployed** | Used placeholder `shopify.app.toml` | Always use `shopify app deploy -c lms` |
 
 ## Future Improvements
 

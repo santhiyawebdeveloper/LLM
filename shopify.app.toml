@@ -1,4 +1,12 @@
-# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+# LOCAL DEVELOPMENT TEMPLATE ONLY
+#
+# For production deployment, use:
+#   shopify.app.lms.toml
+#
+# Deploy Shopify config with:
+#   shopify app deploy -c lms --allow-updates
+#
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
 
 name = "Shopify LMS"
 client_id = "YOUR_CLIENT_ID"
@@ -14,7 +22,8 @@ scopes = "read_products"
 
 [auth]
 redirect_urls = [
-  "https://YOUR_APP_URL/api/auth/callback"
+  "https://YOUR_APP_URL/api/auth/callback",
+  "http://localhost:3000/api/auth/callback"
 ]
 
 [webhooks]

@@ -1,4 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+#
+# ACTIVE PRODUCTION CONFIGURATION
+# Use this file for production deploys:
+#   shopify app deploy -c lms --allow-updates
+#
+# Do NOT deploy shopify.app.toml (placeholder template for local dev).
 
 client_id = "2836a433d92ea24f9977e98df209bb47"
 name = "LMS"

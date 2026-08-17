@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
+import { DirectAccessPage } from '../pages/DirectAccess/DirectAccessPage';
+import { isShopifyEmbedded } from '../utils/shopifyContext';
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { CoursesPage } from '../pages/Courses/CoursesPage';
 import { CourseDetailPage } from '../pages/Courses/CourseDetailPage';
@@ -11,6 +13,14 @@ import { StoreInfoPage } from '../pages/Shopify/StoreInfoPage';
 import { ProductsPage } from '../pages/Shopify/ProductsPage';
 
 export function AppRoutes() {
+  if (import.meta.env.PROD && !isShopifyEmbedded()) {
+    return (
+      <Routes>
+        <Route path="*" element={<DirectAccessPage />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/" element={<AppLayout />}>
