@@ -1,0 +1,28 @@
+{
+  "name": "shopify-lms-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shopify Embedded LMS Application",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server",
+    "lint": "npm run lint -w server && npm run lint -w client",
+    "setup:atlas": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-atlas.ps1",
+    "setup:finish": "powershell -ExecutionPolicy Bypass -File ./scripts/finish-setup.ps1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "mongodb": "^7.5.0"
+  }
+}
