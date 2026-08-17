@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Page,
   Card,
@@ -32,6 +33,7 @@ const emptyForm: CreateCourseInput = {
 };
 
 export function CoursesPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -231,6 +233,7 @@ export function CoursesPage() {
                     <IndexTable.Cell>{new Date(course.createdAt).toLocaleDateString()}</IndexTable.Cell>
                     <IndexTable.Cell>
                       <InlineStack gap="200">
+                        <Button size="slim" onClick={() => navigate(`/courses/${course._id}`)}>View</Button>
                         <Button size="slim" onClick={() => openEditModal(course)}>Edit</Button>
                         <Button size="slim" tone="critical" onClick={() => setDeleteTarget(course)}>Delete</Button>
                       </InlineStack>

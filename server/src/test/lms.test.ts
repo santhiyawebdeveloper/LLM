@@ -392,15 +392,29 @@ describe('StoreService uninstall cleanup', () => {
       duration: 2,
     });
     await StudentService.create(store._id, { name: 'Temp', email: 'temp@test.com' });
+    const student = await StudentService.create(store._id, { name: 'Enrolled', email: 'enrolled@test.com' });
+    const course = await CourseService.create(store._id, {
+      title: 'Temp Course 2',
+      description: 'Desc',
+      instructorName: 'Inst',
+      category: 'Cat',
+      duration: 2,
+    });
+    await EnrollmentService.create(store._id, {
+      studentId: student._id.toString(),
+      courseId: course._id.toString(),
+    });
 
     await StoreService.removeByShopDomain(store.shopDomain);
 
     const remainingCourses = await Course.countDocuments({ storeId: store._id });
     const remainingStudents = await Student.countDocuments({ storeId: store._id });
+    const remainingEnrollments = await Enrollment.countDocuments({ storeId: store._id });
     const remainingStore = await Store.findOne({ shopDomain: store.shopDomain });
 
     expect(remainingCourses).toBe(0);
     expect(remainingStudents).toBe(0);
+    expect(remainingEnrollments).toBe(0);
     expect(remainingStore).toBeNull();
   });
 });

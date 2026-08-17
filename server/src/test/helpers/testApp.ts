@@ -11,6 +11,7 @@ import dashboardRoutes from '../../routes/dashboardRoutes.js';
 import shopifyRoutes from '../../routes/shopifyRoutes.js';
 
 const TEST_SHOP = 'test-shop.myshopify.com';
+const OTHER_TEST_SHOP = 'other-test-shop.myshopify.com';
 
 /**
  * API app for HTTP tests that require an authenticated tenant context.
@@ -18,7 +19,7 @@ const TEST_SHOP = 'test-shop.myshopify.com';
  * Shopify JWT/session validation is simulated with a stored offline session
  * because the Shopify session storage DB is initialized before test MongoDB boots.
  */
-export function createAuthenticatedApiApp(): Express {
+export function createAuthenticatedApiApp(shop = TEST_SHOP): Express {
   const app = express();
   app.use(express.json());
 
@@ -27,8 +28,8 @@ export function createAuthenticatedApiApp(): Express {
   api.use(async (req, res, next) => {
     res.locals.shopify = {
       session: Session.fromPropertyArray([
-        ['id', `offline_${TEST_SHOP}`],
-        ['shop', TEST_SHOP],
+        ['id', `offline_${shop}`],
+        ['shop', shop],
         ['state', ''],
         ['isOnline', false],
         ['accessToken', 'shpat_test_access_token'],
@@ -51,3 +52,4 @@ export function createAuthenticatedApiApp(): Express {
 }
 
 export const TEST_BEARER = 'Bearer test-session-token';
+export { OTHER_TEST_SHOP };
