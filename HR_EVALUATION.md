@@ -55,16 +55,36 @@ This app is **not published to the Shopify App Store**. Evaluators install it on
 
 ### Install steps
 
-1. Create your development store and note the domain, e.g. `your-eval-store.myshopify.com`
-2. Open this URL (replace `YOUR-STORE`):
+1. Create your **own** development store in Partner Dashboard → **Stores** → **Add store** → **Create development store**
+2. Note the domain, e.g. `your-eval-store.myshopify.com`
+3. **Log in to that store's admin** (`https://your-eval-store.myshopify.com/admin`) — not only the Partner Dashboard
+4. Open this URL (replace `YOUR-STORE`):
 
    ```
-   https://shopify-lms-three.vercel.app/api/auth?shop=YOUR-STORE.myshopify.com
+   https://shopify-lms-three.vercel.app/install?shop=YOUR-STORE.myshopify.com
    ```
 
-3. Log in to your development store if prompted
-4. Review permissions (`read_products`) and click **Install app**
-5. Open the embedded app: **Shopify Admin → Apps → LMS**
+   Alternative (Shopify managed install):
+
+   ```
+   https://admin.shopify.com/oauth/install?client_id=2836a433d92ea24f9977e98df209bb47
+   ```
+
+5. Approve permissions (`read_products`) and click **Install app**
+6. Open the embedded app: **Shopify Admin → Apps → LMS**
+
+### If you see "Unauthorized Access"
+
+This error comes from **Shopify**, not the LMS app code. Common causes:
+
+| Cause | Fix |
+|-------|-----|
+| Wrong store type | Use a **Partner development store** you created. Do not use restricted/special stores. |
+| Not logged into store admin | Log in to `https://YOUR-STORE.myshopify.com/admin` before installing |
+| App is Custom distribution | Developer must set **Public distribution** in Partner Dashboard → Apps → LMS → App distribution |
+| Missing install permission | Store owner must grant you permission to install apps |
+
+**Developer one-time fix (required for HR evaluators):** Partner Dashboard → **Apps → LMS → App distribution → Public distribution**. Without Public distribution, only whitelisted stores can install the app.
 
 ### Direct URL behavior
 

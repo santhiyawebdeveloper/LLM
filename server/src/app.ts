@@ -16,6 +16,10 @@ import {
 } from './middleware/security.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { redirectAfterOAuth } from './middleware/redirectAfterOAuth.js';
+import {
+  bootstrapOfflineSession,
+  getShopifyInstallUrl,
+} from './middleware/bootstrapOfflineSession.js';
 import { env, isProduction } from './config/env.js';
 import { StoreService } from './services/storeService.js';
 import { logger } from './utils/logger.js';
@@ -101,6 +105,16 @@ export function createApp(): Express {
     });
   });
 
+  app.get('/install', (req, res) => {
+    const shopParam = typeof req.query.shop === 'string' ? req.query.shop : undefined;
+    if (shopParam && !isValidShopDomain(shopParam)) {
+      res.status(400).send('Invalid shop domain. Use your-store.myshopify.com');
+      return;
+    }
+
+    res.redirect(getShopifyInstallUrl(env.SHOPIFY_API_KEY, shopParam));
+  });
+
   app.get(
     shopifyAppInstance.config.auth.path,
     authRateLimiter,
@@ -165,6 +179,7 @@ export function createApp(): Express {
   const protectedApi = express.Router();
   protectedApi.use(apiRateLimiter);
   protectedApi.use(requireBearerAuth);
+  protectedApi.use(bootstrapOfflineSession);
   protectedApi.use(shopifyAppInstance.validateAuthenticatedSession());
   protectedApi.use(syncStoreMiddleware);
 
@@ -207,12 +222,19 @@ export function createApp(): Express {
       return;
     }
 
-    shopifyAppInstance.ensureInstalledOnShop()(req, res, (err) => {
+    bootstrapOfflineSession(req, res, (err) => {
       if (err) {
         next(err);
         return;
       }
-      serveSpa(req, res, next);
+
+      shopifyAppInstance.ensureInstalledOnShop()(req, res, (installErr) => {
+        if (installErr) {
+          next(installErr);
+          return;
+        }
+        serveSpa(req, res, next);
+      });
     });
   });
 

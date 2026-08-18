@@ -83,6 +83,22 @@ describe('HTTP API integration', () => {
       expect(res.text).toContain("window.open(");
       expect(res.text).toContain('_top');
     });
+
+    it('GET /install redirects to Shopify managed install URL', async () => {
+      const res = await request(app).get('/install?shop=test.myshopify.com');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe(
+        'https://test.myshopify.com/admin/oauth/install?client_id=test-api-key'
+      );
+    });
+
+    it('GET /install without shop redirects to admin install URL', async () => {
+      const res = await request(app).get('/install');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe(
+        'https://admin.shopify.com/oauth/install?client_id=test-api-key'
+      );
+    });
   });
 
   describe('invalid route params (authenticated tenant pipeline)', () => {

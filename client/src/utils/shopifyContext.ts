@@ -32,6 +32,14 @@ export function getShopifyAdminAppUrl(shop: string, apiKey: string): string {
   return `https://${shop}/admin/apps/${apiKey}`;
 }
 
+/** Shopify managed install URL (recommended for embedded apps). */
+export function getShopifyManagedInstallUrl(apiKey: string, shop?: string): string {
+  if (shop) {
+    return `https://${shop}/admin/oauth/install?client_id=${encodeURIComponent(apiKey)}`;
+  }
+  return `https://admin.shopify.com/oauth/install?client_id=${encodeURIComponent(apiKey)}`;
+}
+
 export function getShopFromUrl(): string | null {
   const shop = new URLSearchParams(window.location.search).get('shop');
   return shop && isValidShopDomain(shop) ? shop : null;
