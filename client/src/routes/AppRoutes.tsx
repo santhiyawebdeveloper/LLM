@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { DirectAccessPage } from '../pages/DirectAccess/DirectAccessPage';
-import { isShopifyEmbedded } from '../utils/shopifyContext';
+import { getShopFromUrl, getShopifyAdminAppUrl, isShopifyEmbedded } from '../utils/shopifyContext';
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { CoursesPage } from '../pages/Courses/CoursesPage';
 import { CourseDetailPage } from '../pages/Courses/CourseDetailPage';
@@ -14,6 +14,14 @@ import { ProductsPage } from '../pages/Shopify/ProductsPage';
 
 export function AppRoutes() {
   if (import.meta.env.PROD && !isShopifyEmbedded()) {
+    const shop = getShopFromUrl();
+    const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
+
+    if (shop && apiKey) {
+      window.location.replace(getShopifyAdminAppUrl(shop, apiKey));
+      return null;
+    }
+
     return (
       <Routes>
         <Route path="*" element={<DirectAccessPage />} />

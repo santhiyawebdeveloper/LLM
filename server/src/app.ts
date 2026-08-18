@@ -15,6 +15,7 @@ import {
   healthRateLimiter,
 } from './middleware/security.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { redirectAfterOAuth } from './middleware/redirectAfterOAuth.js';
 import { env, isProduction } from './config/env.js';
 import { StoreService } from './services/storeService.js';
 import { logger } from './utils/logger.js';
@@ -109,7 +110,7 @@ export function createApp(): Express {
     shopifyAppInstance.config.auth.callbackPath,
     authRateLimiter,
     shopifyAppInstance.auth.callback(),
-    shopifyAppInstance.redirectToShopifyOrAppRoot()
+    redirectAfterOAuth
   );
 
   app.get('/exitiframe', (req, res) => {
