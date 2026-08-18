@@ -1,6 +1,8 @@
 import type { ApiError, ApiResponse } from '../types/enrollment';
 import { isShopifyEmbedded } from '../utils/shopifyContext';
 
+const SESSION_TOKEN_TIMEOUT_MS = 15_000;
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -23,7 +25,21 @@ function getUnauthorizedMessage(): string {
 async function getAuthHeaders(): Promise<HeadersInit> {
   const shopify = (window as unknown as { shopify?: { idToken: () => Promise<string> } }).shopify;
   if (shopify?.idToken) {
-    const token = await shopify.idToken();
+    const token = await Promise.race<string | null>([
+      shopify.idToken().catch(() => null),
+      new Promise((resolve) => {
+        setTimeout(() => resolve(null), SESSION_TOKEN_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (!token) {
+      throw new ApiClientError(
+        getUnauthorizedMessage(),
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -32,13 +48,29 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return { 'Content-Type': 'application/json' };
 }
 
+function withEmbeddedContext(endpoint: string): string {
+  const [path, existingQuery = ''] = endpoint.split('?');
+  const params = new URLSearchParams(existingQuery);
+  const current = new URLSearchParams(window.location.search);
+
+  for (const key of ['shop', 'host'] as const) {
+    const value = current.get(key);
+    if (value && !params.has(key)) {
+      params.set(key, value);
+    }
+  }
+
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(`/api${endpoint}`, {
+  const response = await fetch(withEmbeddedContext(`/api${endpoint}`), {
     ...options,
     headers: {
       ...headers,
@@ -48,10 +80,13 @@ export async function apiFetch<T>(
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
+    const reauthorize = response.headers.get('X-Shopify-API-Request-Failure-Reauthorize');
     throw new ApiClientError(
-      response.status === 401 ? getUnauthorizedMessage() : 'Request failed',
-      response.status === 401 ? 'UNAUTHORIZED' : 'UNKNOWN_ERROR',
-      response.status
+      reauthorize || response.status === 401 || response.status === 403
+        ? getUnauthorizedMessage()
+        : 'Request failed',
+      'UNAUTHORIZED',
+      response.status === 403 ? 401 : response.status
     );
   }
 

@@ -99,6 +99,12 @@ describe('HTTP API integration', () => {
         'https://admin.shopify.com/oauth/install?client_id=test-api-key'
       );
     });
+
+    it('GET /api/auth?shop= redirects to managed install (not legacy OAuth)', async () => {
+      const res = await request(app).get('/api/auth?shop=test.myshopify.com');
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/install?shop=test.myshopify.com');
+    });
   });
 
   describe('invalid route params (authenticated tenant pipeline)', () => {

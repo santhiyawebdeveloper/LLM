@@ -16,10 +16,11 @@ import {
 } from './middleware/security.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { redirectAfterOAuth } from './middleware/redirectAfterOAuth.js';
+import { getShopifyInstallUrl } from './middleware/bootstrapOfflineSession.js';
 import {
-  bootstrapOfflineSession,
-  getShopifyInstallUrl,
-} from './middleware/bootstrapOfflineSession.js';
+  ensureInstalledForSpa,
+  requireOfflineShopSession,
+} from './middleware/shopSession.js';
 import { env, isProduction } from './config/env.js';
 import { StoreService } from './services/storeService.js';
 import { logger } from './utils/logger.js';
@@ -118,7 +119,14 @@ export function createApp(): Express {
   app.get(
     shopifyAppInstance.config.auth.path,
     authRateLimiter,
-    shopifyAppInstance.auth.begin()
+    (req, res, next) => {
+      const shop = req.query.shop;
+      if (typeof shop === 'string' && isValidShopDomain(shop)) {
+        res.redirect(`/install?shop=${encodeURIComponent(shop)}`);
+        return;
+      }
+      shopifyAppInstance.auth.begin()(req, res, next);
+    }
   );
   app.get(
     shopifyAppInstance.config.auth.callbackPath,
@@ -179,8 +187,7 @@ export function createApp(): Express {
   const protectedApi = express.Router();
   protectedApi.use(apiRateLimiter);
   protectedApi.use(requireBearerAuth);
-  protectedApi.use(bootstrapOfflineSession);
-  protectedApi.use(shopifyAppInstance.validateAuthenticatedSession());
+  protectedApi.use(requireOfflineShopSession);
   protectedApi.use(syncStoreMiddleware);
 
   protectedApi.use('/courses', courseRoutes);
@@ -222,19 +229,12 @@ export function createApp(): Express {
       return;
     }
 
-    bootstrapOfflineSession(req, res, (err) => {
+    ensureInstalledForSpa(req, res, (err) => {
       if (err) {
         next(err);
         return;
       }
-
-      shopifyAppInstance.ensureInstalledOnShop()(req, res, (installErr) => {
-        if (installErr) {
-          next(installErr);
-          return;
-        }
-        serveSpa(req, res, next);
-      });
+      serveSpa(req, res, next);
     });
   });
 
