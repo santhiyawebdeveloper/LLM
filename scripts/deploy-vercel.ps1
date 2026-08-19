@@ -10,47 +10,118 @@ function Get-EnvValue([string]$Name) {
   return ($line -split '=', 2)[1].Trim()
 }
 
+function Get-OptionalEnvValue([string]$Name) {
+  $line = Get-Content .env | Where-Object { $_ -match "^\s*$Name=" } | Select-Object -First 1
+  if (-not $line) { return $null }
+  return ($line -split '=', 2)[1].Trim()
+}
+
+function Write-VercelOutput {
+  param([object[]]$Lines)
+  foreach ($line in $Lines) {
+    if ($line -is [System.Management.Automation.ErrorRecord]) {
+      Write-Host $line.ToString()
+    } else {
+      Write-Host $line
+    }
+  }
+}
+
+function Invoke-VercelCli {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$VercelArgs
+  )
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+
+  try {
+    $lines = & npx vercel @VercelArgs 2>&1
+    $exitCode = $LASTEXITCODE
+    Write-VercelOutput $lines
+
+    if ($exitCode -ne 0) {
+      throw "Vercel command failed (exit $exitCode): vercel $($VercelArgs -join ' ')"
+    }
+
+    return ($lines | ForEach-Object {
+      if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() } else { $_ }
+    }) -join "`n"
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+}
+
+function Add-VercelEnvValue {
+  param(
+    [string]$Name,
+    [string]$Value,
+    [string]$Env = 'production'
+  )
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+
+  try {
+    $lines = $Value | & npx vercel env add $Name $Env 2>&1
+    $exitCode = $LASTEXITCODE
+    Write-VercelOutput $lines
+
+    if ($exitCode -ne 0) {
+      throw "Failed to set Vercel env $Name ($Env)"
+    }
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+}
+
 function Set-VercelEnv([string]$Name, [string]$Value, [string]$Env = 'production') {
-  $existing = npx vercel env ls $Env 2>&1 | Out-String
+  $existing = Invoke-VercelCli env ls $Env
   if ($existing -match "\s$Name\s") {
     Write-Host "Updating Vercel env: $Name ($Env)"
-    npx vercel env rm $Name $Env --yes 2>&1 | Out-Null
+    Invoke-VercelCli env rm $Name $Env --yes | Out-Null
+  } else {
+    Write-Host "Setting Vercel env: $Name ($Env)"
   }
-  Write-Host "Setting Vercel env: $Name ($Env)"
-  $Value | npx vercel env add $Name $Env 2>&1 | Out-Null
+  Add-VercelEnvValue -Name $Name -Value $Value -Env $Env
 }
 
 Write-Host 'Linking Vercel project (if needed)...'
-npx vercel link --yes --project shopify-lms 2>&1 | Out-Host
+Invoke-VercelCli link --yes --project shopify-lms | Out-Null
 
-Write-Host 'Initial production deploy...'
-$deployOutput = npx vercel --yes 2>&1 | Out-String
-Write-Host $deployOutput
-$url = ([regex]::Match($deployOutput, 'https://[a-z0-9-]+\.vercel\.app')).Value
-if (-not $url) { throw 'Could not detect Vercel deployment URL from CLI output.' }
-Write-Host "Detected URL: $url"
+$appUrl = Get-OptionalEnvValue 'SHOPIFY_APP_URL'
+if (-not $appUrl) {
+  Write-Host 'Deploying production build to detect URL...'
+  $deployOutput = Invoke-VercelCli --prod --yes
+  $appUrl = ([regex]::Match($deployOutput, 'https://[a-z0-9-]+\.vercel\.app')).Value
+  if (-not $appUrl) { throw 'Could not detect Vercel deployment URL from CLI output.' }
+}
+
+Write-Host "Production URL: $appUrl"
 
 $shopifyKey = Get-EnvValue 'SHOPIFY_API_KEY'
 $shopifySecret = Get-EnvValue 'SHOPIFY_API_SECRET'
 $mongoUri = Get-EnvValue 'MONGODB_URI'
-$scopes = if (Get-Content .env | Where-Object { $_ -match '^\s*SHOPIFY_SCOPES=' }) { Get-EnvValue 'SHOPIFY_SCOPES' } else { 'read_products' }
+$scopes = if (Get-OptionalEnvValue 'SHOPIFY_SCOPES') { Get-EnvValue 'SHOPIFY_SCOPES' } else { 'read_products' }
 
+Write-Host 'Syncing Vercel production environment variables...'
 Set-VercelEnv 'NODE_ENV' 'production'
 Set-VercelEnv 'SHOPIFY_API_KEY' $shopifyKey
 Set-VercelEnv 'SHOPIFY_API_SECRET' $shopifySecret
 Set-VercelEnv 'MONGODB_URI' $mongoUri
 Set-VercelEnv 'SHOPIFY_SCOPES' $scopes
 Set-VercelEnv 'VITE_SHOPIFY_API_KEY' $shopifyKey
-Set-VercelEnv 'SHOPIFY_APP_URL' $url
+Set-VercelEnv 'SHOPIFY_APP_URL' $appUrl
 
 Write-Host 'Redeploying production with environment variables...'
-npx vercel --prod --yes 2>&1 | Out-Host
+Invoke-VercelCli --prod --yes | Out-Null
 
 Write-Host ''
 Write-Host 'Deployment complete.'
-Write-Host "Production URL: $url"
+Write-Host "Production URL: $appUrl"
 Write-Host ''
 Write-Host 'Next: Update Shopify Partner Dashboard for LMS app:'
-Write-Host "  App URL: $url"
-Write-Host "  OAuth redirect: $url/api/auth/callback"
-Write-Host "  Webhook: $url/api/webhooks"
+Write-Host "  App URL: $appUrl"
+Write-Host "  OAuth redirect: $appUrl/api/auth/callback"
+Write-Host "  Webhook: $appUrl/api/webhooks"
