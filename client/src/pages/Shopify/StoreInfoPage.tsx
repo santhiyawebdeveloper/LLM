@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { shopifyApi } from '../../services/shopifyApi';
 import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
+import { getApiErrorMessage } from '../../services/api';
 
 export function StoreInfoPage() {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['shopify', 'shop'],
     queryFn: () => shopifyApi.getShop(),
   });
@@ -17,7 +18,10 @@ export function StoreInfoPage() {
   if (isError || !data?.data) {
     return (
       <Page title="Store Information">
-        <ErrorState message="Failed to load store information from Shopify" onRetry={() => refetch()} />
+        <ErrorState
+          message={getApiErrorMessage(error, 'Failed to load store information from Shopify')}
+          onRetry={() => refetch()}
+        />
       </Page>
     );
   }

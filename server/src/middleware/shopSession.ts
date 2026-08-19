@@ -24,15 +24,27 @@ async function loadOrCreateOfflineSession(
   const sessionId = shopifyAppInstance.api.session.getOfflineId(shop);
   let session = await shopifyAppInstance.config.sessionStorage.loadSession(sessionId);
 
-  if (!session?.accessToken && sessionToken) {
-    const { session: exchanged } = await shopifyAppInstance.api.auth.tokenExchange({
-      shop,
-      sessionToken,
-      requestedTokenType: RequestedTokenType.OfflineAccessToken,
-    });
-    await shopifyAppInstance.config.sessionStorage.storeSession(exchanged);
-    session = exchanged;
-    logger.info('Created offline session via token exchange', { shop });
+  if (sessionToken) {
+    try {
+      const { session: exchanged } = await shopifyAppInstance.api.auth.tokenExchange({
+        shop,
+        sessionToken,
+        requestedTokenType: RequestedTokenType.OfflineAccessToken,
+      });
+      await shopifyAppInstance.config.sessionStorage.storeSession(exchanged);
+      session = exchanged;
+      logger.info('Refreshed offline session via token exchange', { shop });
+    } catch (error) {
+      logger.warn('Token exchange failed', {
+        shop,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      if (!session?.accessToken) {
+        return null;
+      }
+    }
+  } else if (!session?.accessToken) {
+    return null;
   }
 
   if (!session?.accessToken) {

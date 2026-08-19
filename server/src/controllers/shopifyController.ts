@@ -7,7 +7,8 @@ export class ShopifyController {
   static async getShop(req: Request, res: Response, next: NextFunction) {
     try {
       const { shopDomain } = getAuthContext(req);
-      const shop = await ShopifyService.getShopInfo(shopDomain);
+      const accessToken = res.locals.shopify?.session?.accessToken;
+      const shop = await ShopifyService.getShopInfo(shopDomain, accessToken);
       sendSuccess(res, shop);
     } catch (error) {
       next(error);
@@ -17,7 +18,8 @@ export class ShopifyController {
   static async getProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const { shopDomain } = getAuthContext(req);
-      const products = await ShopifyService.getProducts(shopDomain);
+      const accessToken = res.locals.shopify?.session?.accessToken;
+      const products = await ShopifyService.getProducts(shopDomain, 50, accessToken);
       sendSuccess(res, products);
     } catch (error) {
       next(error);

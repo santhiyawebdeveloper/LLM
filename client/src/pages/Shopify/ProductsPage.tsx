@@ -5,9 +5,10 @@ import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
 import { EmptyState } from '../../components/EmptyState';
 import { StatusBadge } from '../../components/StatusBadge';
+import { getApiErrorMessage } from '../../services/api';
 
 export function ProductsPage() {
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['shopify', 'products'],
     queryFn: () => shopifyApi.getProducts(),
   });
@@ -19,7 +20,10 @@ export function ProductsPage() {
   if (isError) {
     return (
       <Page title="Shopify Products">
-        <ErrorState message="Failed to load products from Shopify" onRetry={() => refetch()} />
+        <ErrorState
+          message={getApiErrorMessage(error, 'Failed to load products from Shopify')}
+          onRetry={() => refetch()}
+        />
       </Page>
     );
   }

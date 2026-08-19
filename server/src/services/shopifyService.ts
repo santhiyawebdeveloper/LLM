@@ -1,6 +1,7 @@
 import { StoreService } from './storeService.js';
 import { ShopifyApiError } from '../utils/errors.js';
 import { createGraphqlClient } from '../utils/shopifySession.js';
+import { logger } from '../utils/logger.js';
 
 const SHOP_QUERY = `
   query {
@@ -27,11 +28,18 @@ const PRODUCTS_QUERY = `
   }
 `;
 
+function getGraphqlErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 export class ShopifyService {
-  static async getShopInfo(shopDomain: string) {
+  static async getShopInfo(shopDomain: string, accessToken?: string) {
     try {
-      const accessToken = await StoreService.getAccessToken(shopDomain);
-      const client = createGraphqlClient(shopDomain, accessToken);
+      const token = accessToken ?? await StoreService.getAccessToken(shopDomain);
+      const client = createGraphqlClient(shopDomain, token);
       const response = await client.request<{
         shop: {
           id: string;
@@ -48,14 +56,18 @@ export class ShopifyService {
       return response.data.shop;
     } catch (error) {
       if (error instanceof ShopifyApiError) throw error;
+      logger.error('Shopify shop GraphQL request failed', {
+        shopDomain,
+        message: getGraphqlErrorMessage(error),
+      });
       throw new ShopifyApiError('Failed to retrieve shop information from Shopify');
     }
   }
 
-  static async getProducts(shopDomain: string, first = 50) {
+  static async getProducts(shopDomain: string, first = 50, accessToken?: string) {
     try {
-      const accessToken = await StoreService.getAccessToken(shopDomain);
-      const client = createGraphqlClient(shopDomain, accessToken);
+      const token = accessToken ?? await StoreService.getAccessToken(shopDomain);
+      const client = createGraphqlClient(shopDomain, token);
       const response = await client.request<{
         products: {
           edges: Array<{
@@ -75,6 +87,10 @@ export class ShopifyService {
       return response.data.products.edges.map((edge) => edge.node);
     } catch (error) {
       if (error instanceof ShopifyApiError) throw error;
+      logger.error('Shopify products GraphQL request failed', {
+        shopDomain,
+        message: getGraphqlErrorMessage(error),
+      });
       throw new ShopifyApiError('Failed to retrieve products from Shopify');
     }
   }
